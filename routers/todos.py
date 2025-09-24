@@ -127,45 +127,37 @@ async def delete_todo(request: Request, todo_id: int, db: Session = Depends(get_
 
 
 
-# obtener todos los todos
-@router.get("/")
-async def read_all(db: Session = Depends(get_db)):
-    user = await get_current_user(request)
+# JSON API: list todos for current user
+@router.get("/api")
+async def read_all(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     if user is None:
-        return RedirectResponse(url="/auth", status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
-    return db.query(models.Todos).all()
+    return db.query(models.Todos).filter(models.Todos.owner_id == user.get("id")).all()
 
 
-@router.get("/user")
-async def read_all_by_user(user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
-    user = await get_current_user(request)
+@router.get("/api/user")
+async def read_all_by_user_api(user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     if user is None:
-        return RedirectResponse(url="/auth", status_code=status.HTTP_302_FOUND)
-
-    if user is None:
-        raise get_user_exception()
-    return db.query(models.Todos).filter(models.Todos.owner_id == user.get("id"))
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return db.query(models.Todos).filter(models.Todos.owner_id == user.get("id")).all()
 
 
 # obtener todo por id
-@router.get("/{todo_id}")
+@router.get("/api/{todo_id}")
 async def read_todo(todo_id: int, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-    user = await get_current_user(request)
     if user is None:
-        return RedirectResponse(url="/auth", status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
     todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).filter(models.Todos.owner_id == user.get("id")).first()
     if todo_model is not None:
         return todo_model
     raise http_exception()
 
-@router.post("/")
-async def create_todo(todo: Todo, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-    user = await get_current_user(request)
-
+@router.post("/api")
+async def create_todo_api(todo: Todo, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     if user is None:
-        return RedirectResponse(url="/auth", status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
     todo_model = models.Todos()
     todo_model.title = todo.title
@@ -179,12 +171,10 @@ async def create_todo(todo: Todo, db: Session = Depends(get_db), user: dict = De
 
     return successful_response(201)
 
-@router.put("/{todo_id}")
-async def update_todo(todo_id: int, todo: Todo, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-
-    user = await get_current_user(request)
+@router.put("/api/{todo_id}")
+async def update_todo_api(todo_id: int, todo: Todo, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     if user is None:
-        return RedirectResponse(url="/auth", status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=401, detail="Not authenticated")
     
     todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).filter(models.Todos.owner_id == user.get("id")).first()
     
@@ -201,12 +191,10 @@ async def update_todo(todo_id: int, todo: Todo, db: Session = Depends(get_db), u
 
     return successful_response(200)
 
-@router.delete("/{todo_id}")
-async def delete_todo(todo_id: int, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-    
-    user = await get_current_user(request)
+@router.delete("/api/{todo_id}")
+async def delete_todo_api(todo_id: int, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     if user is None:
-        return RedirectResponse(url="/auth", status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
     todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).filter(models.Todos.owner_id == user.get("id")).first()
 
